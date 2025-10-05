@@ -216,7 +216,13 @@ async def something():
 
                 # 🔁 Nouveau système de compression
                 compressed_files = compress_video(dl, out.replace(".mkv", ""))
+                if not compressed_files:
+                await e.reply("❌ Compression failed — no output file was created.")
+                QUEUE.pop(list(QUEUE.keys())[0])
+                WORKING.clear()
+                return
                 out = compressed_files[0]
+
 
                 ees = dt.now()
                 ttt = time.time()
