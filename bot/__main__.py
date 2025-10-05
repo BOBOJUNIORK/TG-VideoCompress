@@ -106,8 +106,8 @@ async def _(e):
     if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await test(e)
-
-
+    
+    
 
 ########## Direct ###########
 
@@ -262,5 +262,4 @@ async def something():
 LOGS.info("Bot has started.")
 with bot:
     bot.loop.run_until_complete(something())
-    bot.loop.run_forever(
     bot.loop.run_forever()
