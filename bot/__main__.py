@@ -1,12 +1,15 @@
 #    This file is part of the CompressorQueue distribution.
 #    Copyright (c) 2021 Danish_00
 #    Script Improved by Anshusharma
+#    Enhanced by BOBOJUNIORK (Auto-detect & Multi-resolution)
 
 from . import *
 from .config import *
 from .worker import *
 from .devtools import *
 from .FastTelethon import *
+from .compress_manager import compress_video, set_mode, toggle_multires
+
 LOGS.info("Starting...")
 
 try:
@@ -14,100 +17,108 @@ try:
 except Exception as er:
     LOGS.info(er)
 
-
 ####### GENERAL CMDS ########
 
 @bot.on(events.NewMessage(pattern="/start"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await start(e)
 
-
 @bot.on(events.NewMessage(pattern="/setcode"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await coding(e)
 
-
 @bot.on(events.NewMessage(pattern="/getcode"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await getcode(e)
 
-
 @bot.on(events.NewMessage(pattern="/showthumb"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await getthumb(e)
 
-
 @bot.on(events.NewMessage(pattern="/logs"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await getlogs(e)
 
-
 @bot.on(events.NewMessage(pattern="/cmds"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await zylern(e)
 
-
 @bot.on(events.NewMessage(pattern="/ping"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await up(e)
 
-
 @bot.on(events.NewMessage(pattern="/sysinfo"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await sysinfo(e)
 
-
 @bot.on(events.NewMessage(pattern="/leech"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await dl_link(e)
 
-
 @bot.on(events.NewMessage(pattern="/help"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await ihelp(e)
 
-
 @bot.on(events.NewMessage(pattern="/renew"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await renew(e)
 
-
 @bot.on(events.NewMessage(pattern="/clear"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await clearqueue(e)
 
-
 @bot.on(events.NewMessage(pattern="/speed"))
 async def _(e):
-    if str(e.sender_id) not in OWNER and e.sender_id !=DEV:
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
         return e.reply("**Sorry You're not An Authorised User!**")
     await test(e)
-    
-    
+
+########## NEW COMMANDS ###########
+
+@bot.on(events.NewMessage(pattern="/setmode"))
+async def _(e):
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
+        return await e.reply("**Sorry You're not An Authorised User!**")
+    parts = e.raw_text.split()
+    if len(parts) < 2:
+        return await e.reply("⚙️ Usage: /setmode auto | hq | eco")
+    msg = set_mode(parts[1])
+    await e.reply(msg)
+
+@bot.on(events.NewMessage(pattern="/multires"))
+async def _(e):
+    if str(e.sender_id) not in OWNER and e.sender_id != DEV:
+        return await e.reply("**Sorry You're not An Authorised User!**")
+    parts = e.raw_text.split()
+    if len(parts) < 2:
+        return await e.reply("⚙️ Usage: /multires on | off")
+    state = parts[1].lower() == "on"
+    msg = toggle_multires(state)
+    await e.reply(msg)
 
 ########## Direct ###########
 
@@ -118,7 +129,6 @@ async def _(e):
 @bot.on(events.NewMessage(pattern="/bash"))
 async def _(e):
     await bash(e)
-
 
 ######## Callbacks #########
 
@@ -138,19 +148,17 @@ async def _(e):
 
 @bot.on(events.NewMessage(incoming=True))
 async def _(event):
-        if str(event.sender_id) not in OWNER and event.sender_id !=DEV:
-            return await event.reply_text("**Sorry You're not An Authorised User!**")
-        if not event.photo:
-            return
-        os.system("rm thumb.jpg")
-        await event.client.download_media(event.media, file="/bot/thumb.jpg")
-        await event.reply("**Thumbnail Saved Successfully.**")
-
+    if str(event.sender_id) not in OWNER and event.sender_id != DEV:
+        return await event.reply("**Sorry You're not An Authorised User!**")
+    if not event.photo:
+        return
+    os.system("rm thumb.jpg")
+    await event.client.download_media(event.media, file="/bot/thumb.jpg")
+    await event.reply("**Thumbnail Saved Successfully.**")
 
 @bot.on(events.NewMessage(incoming=True))
 async def _(e):
     await encod(e)
-
 
 async def something():
     for i in itertools.count():
@@ -205,21 +213,11 @@ async def something():
                         [Button.inline("CANCEL", data=f"skip{wah}")],
                     ],
                 )
-                cmd = f"""ffmpeg -i "{dl}" {ffmpegcode[0]} "{out}" -y"""
-                process = await asyncio.create_subprocess_shell(
-                    cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-                )
-                stdout, stderr = await process.communicate()
-                er = stderr.decode()
-                try:
-                    if er:
-                        await e.edit(str(er) + "\n\n**ERROR**")
-                        QUEUE.pop(list(QUEUE.keys())[0])
-                        os.remove(dl)
-                        os.remove(out)
-                        continue
-                except BaseException:
-                    pass
+
+                # 🔁 Nouveau système de compression
+                compressed_files = compress_video(dl, out.replace(".mkv", ""))
+                out = compressed_files[0]
+
                 ees = dt.now()
                 ttt = time.time()
                 await nn.delete()
@@ -255,7 +253,6 @@ async def something():
                 await asyncio.sleep(3)
         except Exception as err:
             LOGS.info(err)
-
 
 ########### Start ############
 
