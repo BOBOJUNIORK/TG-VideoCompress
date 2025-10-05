@@ -1,63 +1,75 @@
 import os
 import subprocess
+import time
+from datetime import timedelta
 
-CURRENT_MODE = "auto"
-MULTI_RES_ENABLED = False
+def run_ffmpeg(input_file: str, output_file: str, ffmpeg_code: str) -> bool:
+    """
+    Exécute ffmpeg avec un code personnalisé et renvoie True si succès.
+    """
+    try:
+        command = f"ffmpeg -y -hide_banner -loglevel error -i \"{input_file}\" {ffmpeg_code} \"{output_file}\""
+        print(f"\n[FFMPEG] ➤ Running command:\n{command}\n")
 
-def set_mode(mode):
-    global CURRENT_MODE
-    if mode in ["auto", "hq", "eco"]:
-        CURRENT_MODE = mode
-        return f"✅ Mode de compression défini sur : {mode.upper()}"
-    return "❌ Mode invalide. Utilisez /setmode auto | hq | eco"
+        start_time = time.time()
+        result = subprocess.run(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        duration = timedelta(seconds=round(time.time() - start_time))
 
-def toggle_multires(state: bool):
-    global MULTI_RES_ENABLED
-    MULTI_RES_ENABLED = state
-    return f"✅ Multi-résolution {'activée' if state else 'désactivée'}"
+        if result.returncode != 0:
+            print(f"[FFMPEG] ❌ Compression failed after {duration}. Error output:")
+            print(result.stderr.decode("utf-8") or "No stderr captured.")
+            return False
 
-def select_ffmpeg_command(input_file, output_file):
-    """Retourne la commande ffmpeg selon la taille du fichier ou le mode choisi."""
-    file_size = os.path.getsize(input_file)
+        # Vérifie la taille du fichier généré
+        if not os.path.exists(output_file):
+            print(f"[ERROR] Output file not found: {output_file}")
+            return False
 
-    if CURRENT_MODE == "auto":
-        if file_size < 150 * 1024 * 1024:
-            cmd = f"-preset medium -c:v libx264 -s 1280x720 -crf 24 -pix_fmt yuv420p -c:a aac -b:a 96k"
-        elif file_size < 400 * 1024 * 1024:
-            cmd = f"-preset fast -c:v libx264 -s 854x480 -crf 26 -pix_fmt yuv420p -c:a aac -b:a 64k"
-        else:
-            cmd = f"-preset ultrafast -c:v libx264 -s 640x360 -crf 30 -pix_fmt yuv420p -c:a aac -b:a 48k"
+        size = os.path.getsize(output_file)
+        if size < 100000:  # Moins de 100 Ko → erreur probable
+            print(f"[ERROR] Output file too small ({size} bytes): {output_file}")
+            return False
 
-    elif CURRENT_MODE == "hq":
-        cmd = f"-preset medium -c:v libx264 -s 1280x720 -crf 22 -pix_fmt yuv420p -c:a aac -b:a 96k"
+        print(f"[FFMPEG] ✅ Compression succeeded in {duration}. Size: {size/1024/1024:.2f} MB")
+        return True
 
-    elif CURRENT_MODE == "eco":
-        cmd = f"-preset veryfast -c:v libx264 -s 640x360 -crf 30 -pix_fmt yuv420p -c:a aac -b:a 48k"
+    except Exception as e:
+        print(f"[EXCEPTION] ffmpeg crashed: {e}")
+        return False
 
-    return f'ffmpeg -i "{input_file}" {cmd} "{output_file}" -y'
 
-def compress_video(input_path, output_base):
-    """Effectue la compression principale (et multi-résolution si activée)."""
+def compress_video(input_file: str, output_base: str) -> list:
+    """
+    Gère la compression et génère plusieurs résolutions automatiquement.
+    Retourne la liste des fichiers générés.
+    """
+
+    # Liste des profils de résolution
+    profiles = {
+        "720p": "-preset medium -c:v libx264 -s 1280x720 -crf 25 -pix_fmt yuv420p -c:a aac -b:a 96k -threads 1",
+        "480p": "-preset faster -c:v libx264 -s 854x480 -crf 28 -pix_fmt yuv420p -c:a aac -b:a 64k -threads 1",
+        "360p": "-preset veryfast -c:v libx264 -s 640x360 -crf 30 -pix_fmt yuv420p -c:a aac -b:a 48k -threads 1"
+    }
+
     results = []
+    print(f"[START] Compressing: {input_file}")
 
-    if MULTI_RES_ENABLED:
-        resolutions = [("720p", "1280x720"), ("480p", "854x480"), ("360p", "640x360")]
-        for label, size in resolutions:
-            output_file = f"{output_base}_{label}.mp4"
-            cmd = f'ffmpeg -i "{input_path}" -preset fast -c:v libx264 -s {size} -crf 26 -pix_fmt yuv420p -c:a aac -b:a 64k "{output_file}" -y'
-            run_ffmpeg(cmd)
+    for label, ffmpeg_code in profiles.items():
+        output_file = f"{output_base}_{label}.mp4"
+        print(f"\n[PROCESS] Generating {label} version → {output_file}")
+
+        ok = run_ffmpeg(input_file, output_file, ffmpeg_code)
+        if ok:
             results.append(output_file)
+        else:
+            print(f"[WARN] Skipped {label} due to compression failure.")
+
+    # Nettoyage et vérification finale
+    print("\n[SUMMARY] Compression completed.")
+    if not results:
+        print("[FAIL] ❌ No valid output files were created.")
     else:
-        output_file = f"{output_base}_compressed.mp4"
-        cmd = select_ffmpeg_command(input_path, output_file)
-        run_ffmpeg(cmd)
-        results.append(output_file)
+        for f in results:
+            print(f" → ✅ {f} ({os.path.getsize(f)/1024/1024:.2f} MB)")
 
     return results
-
-def run_ffmpeg(cmd):
-    print(f"⚙️  Exécution : {cmd}")
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    for line in iter(process.stdout.readline, b''):
-        print(line.decode(errors='ignore').strip())
-    process.wait()
